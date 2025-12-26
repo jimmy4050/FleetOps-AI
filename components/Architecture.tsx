@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Server, 
   Database, 
@@ -15,7 +15,9 @@ import {
   FileCode,
   Box,
   ExternalLink,
-  Terminal
+  Terminal,
+  X,
+  Copy
 } from 'lucide-react';
 
 const FolderNode = ({ name, children, isFile = false }: any) => (
@@ -28,7 +30,104 @@ const FolderNode = ({ name, children, isFile = false }: any) => (
   </div>
 );
 
+const DeploymentModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+  if (!isOpen) return null;
+
+  const sqlSchema = `-- Run this in Supabase SQL Editor
+CREATE TABLE vehicles (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  vin TEXT UNIQUE NOT NULL,
+  registration_number TEXT NOT NULL,
+  make TEXT,
+  model TEXT,
+  year INTEGER,
+  status TEXT DEFAULT 'ACTIVE',
+  mileage INTEGER DEFAULT 0,
+  fuel_level INTEGER DEFAULT 100,
+  location JSONB,
+  driver_id UUID,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Add other tables (drivers, trips, fuel_logs, notifications) as per DEPLOYMENT.md`;
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    alert("Copied to clipboard!");
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-900 text-white">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-indigo-600 rounded-2xl">
+              <Terminal size={24} />
+            </div>
+            <div>
+              <h3 className="text-2xl font-black">Production Deployment Guide</h3>
+              <p className="text-sm text-slate-400">Vercel + Supabase Enterprise Stack</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full">
+            <X size={24} />
+          </button>
+        </div>
+        <div className="p-8 overflow-y-auto space-y-8">
+          <section>
+            <h4 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <span className="w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xs">1</span>
+              Supabase SQL Initialization
+            </h4>
+            <div className="relative group">
+              <pre className="bg-slate-900 text-indigo-300 p-6 rounded-2xl text-xs font-mono overflow-x-auto border border-slate-800">
+                {sqlSchema}
+              </pre>
+              <button 
+                onClick={() => copyToClipboard(sqlSchema)}
+                className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all opacity-0 group-hover:opacity-100"
+              >
+                <Copy size={16} />
+              </button>
+            </div>
+          </section>
+
+          <section>
+            <h4 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <span className="w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xs">2</span>
+              Vercel Environment Variables
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                { key: 'NEXT_PUBLIC_SUPABASE_URL', desc: 'Supabase Project URL' },
+                { key: 'NEXT_PUBLIC_SUPABASE_ANON_KEY', desc: 'Supabase Public API Key' },
+                { key: 'API_KEY', desc: 'Google Gemini AI Key' },
+                { key: 'SUPABASE_SERVICE_ROLE_KEY', desc: 'Supabase Admin Key (Server Only)' }
+              ].map(env => (
+                <div key={env.key} className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{env.desc}</p>
+                  <p className="font-mono text-xs font-bold text-slate-700 mt-1">{env.key}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <div className="p-6 bg-indigo-50 border border-indigo-100 rounded-2xl flex gap-4 items-center">
+            <Shield className="text-indigo-600" size={32} />
+            <p className="text-sm text-indigo-900 leading-relaxed font-medium">
+              Ensure <strong>Row Level Security (RLS)</strong> is enabled on all production tables. 
+              Never expose your <code>SERVICE_ROLE_KEY</code> in client-side code.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Architecture: React.FC = () => {
+  const [isDeployModalOpen, setIsDeployModalOpen] = useState(false);
+
   const sections = [
     {
       title: "Cloud-Native Infrastructure",
@@ -52,6 +151,8 @@ const Architecture: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-12 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <DeploymentModal isOpen={isDeployModalOpen} onClose={() => setIsDeployModalOpen(false)} />
+      
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="text-left space-y-2">
           <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight">System Architecture Blueprint</h2>
@@ -60,18 +161,17 @@ const Architecture: React.FC = () => {
           </p>
         </div>
         <div className="flex gap-3">
-          <a 
-            href="#" 
+          <button 
+            onClick={() => setIsDeployModalOpen(true)}
             className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20"
           >
             <Terminal size={18} />
             Deployment Guide
-          </a>
+          </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Project Structure Tree */}
         <div className="lg:col-span-1 bg-slate-900 rounded-3xl p-8 border border-slate-800 shadow-2xl">
           <div className="flex items-center gap-2 mb-6 border-b border-slate-800 pb-4">
             <FolderTree className="text-indigo-400" size={20} />
@@ -107,12 +207,8 @@ const Architecture: React.FC = () => {
             <FolderNode name="types.ts" isFile />
             <FolderNode name="DEPLOYMENT.md" isFile />
           </div>
-          <div className="mt-8 pt-6 border-t border-slate-800 text-[10px] text-slate-500 font-mono italic">
-            // Optimized for Vercel & Next.js 14 (App Router)
-          </div>
         </div>
 
-        {/* High Level Detail Cards */}
         <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
           {sections.map((section, i) => (
             <div key={i} className={`bg-white p-8 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all ${i === 2 ? 'md:col-span-2' : ''}`}>
@@ -130,66 +226,6 @@ const Architecture: React.FC = () => {
               </div>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Real-time Data Flow Section */}
-      <div className="bg-slate-900 rounded-[2.5rem] p-12 text-white overflow-hidden relative">
-        <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none">
-          <Layers size={300} strokeWidth={1} />
-        </div>
-        
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          <div className="space-y-8">
-            <h3 className="text-3xl font-bold flex items-center gap-3">
-              <Zap className="text-amber-400" /> 
-              Real-time Data Flow
-            </h3>
-            
-            <div className="space-y-6">
-              {[
-                { step: "01", label: "IoT Edge Ingestion", desc: "Vehicle GPS/OBD-II data sent via encrypted MQTT/HTTPS." },
-                { step: "02", label: "Edge Processing", desc: "Vercel Functions normalize data and check for geofence violations." },
-                { step: "03", label: "Supabase Realtime", desc: "WebSocket broadcast pushes updates to the frontend in <200ms." },
-                { step: "04", label: "AI Prediction", desc: "Gemini models analyze usage patterns for predictive maintenance." }
-              ].map((flow, i) => (
-                <div key={i} className="flex gap-6 group">
-                  <span className="text-indigo-400 font-mono text-lg font-bold">{flow.step}</span>
-                  <div>
-                    <p className="font-bold text-lg group-hover:text-indigo-300 transition-colors">{flow.label}</p>
-                    <p className="text-slate-400 text-sm mt-1">{flow.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl p-8 border border-white/10 space-y-6">
-            <div className="flex items-center gap-2 mb-2">
-              <Shield className="text-emerald-400" size={20} />
-              <span className="text-sm font-bold uppercase tracking-widest text-emerald-400">Security Model</span>
-            </div>
-            <div className="space-y-4">
-              {[
-                "Row Level Security (RLS) on all tables",
-                "AES-256 Encryption for Telematics Storage",
-                "SOC2 Type II Compliant Infrastructure",
-                "Strict MFA for Administrative Portals",
-                "Automated SQL Injection Prevention via Prisma/Postgres"
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
-                  <span className="text-slate-300 text-sm">{item}</span>
-                </div>
-              ))}
-            </div>
-            <div className="pt-6 mt-6 border-t border-white/10">
-              <button className="w-full py-4 bg-white text-slate-900 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-50 transition-colors">
-                <Code2 size={20} />
-                View API Documentation
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
