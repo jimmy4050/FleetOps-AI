@@ -1,0 +1,7 @@
+{
+  "name": "FleetOps AI - Enterprise Fleet Management",
+  "description": "A high-performance enterprise fleet management system featuring real-time analytics, AI-powered maintenance predictions using Gemini, and driver performance tracking.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
