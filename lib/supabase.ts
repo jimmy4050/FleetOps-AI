@@ -3,7 +3,7 @@
  * Browser-side Supabase Client
  * Used in "use client" components.
  */
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+import { createClient } from '@supabase/supabase-js';
 
 // Fallback to dummy values to prevent "supabaseUrl is required" crash on boot.
 // Actual API calls will fail gracefully and fall back to mock data in the UI.

@@ -1,29 +1,34 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+import { createClient } from '@supabase/supabase-js';
 
 /**
  * Next.js Middleware - Security & Session Sync
+ * 
+ * FIX: Added checks for environment variables to prevent 500 
+ * MIDDLEWARE_INVOCATION_FAILED errors on Vercel when keys are missing.
  */
 export async function middleware(req: Request) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  // Guard clause: If environment variables aren't set yet, skip middleware logic 
+  // to prevent a runtime crash (500 error).
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return;
+  }
 
-  const url = new URL(req.url);
-  const isAuthRoute = url.pathname.startsWith('/login') || url.pathname.startsWith('/register');
-  const isDashboardRoute = url.pathname.startsWith('/dashboard') || 
-                           url.pathname.startsWith('/fleet') || 
-                           url.pathname.startsWith('/ai');
-
-  // In a real environment, we check the session via cookies here
-  // const { data: { user } } = await supabase.auth.getUser();
-
-  // Redirect Logic Examples:
-  // if (!user && isDashboardRoute) return Response.redirect(new URL('/login', req.url));
-  // if (user && isAuthRoute) return Response.redirect(new URL('/dashboard', req.url));
-
-  return;
+  try {
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const url = new URL(req.url);
+    
+    // Logic for route protection would go here
+    // Example: const { data: { user } } = await supabase.auth.getUser();
+    
+    return;
+  } catch (error) {
+    console.error("Middleware Execution Error:", error);
+    return;
+  }
 }
 
 export const config = {
